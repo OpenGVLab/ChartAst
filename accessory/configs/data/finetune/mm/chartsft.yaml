@@ -1,0 +1,5 @@
+META:
+  -
+    path: './data.json'
+    type: 'image_text'
+    preprocess: "single_turn_llava"
