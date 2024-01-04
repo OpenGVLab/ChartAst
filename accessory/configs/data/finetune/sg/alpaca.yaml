@@ -1,0 +1,4 @@
+META:
+  -
+    path: '../data/alpaca_gpt4_data.json'
+    type: 'text'
