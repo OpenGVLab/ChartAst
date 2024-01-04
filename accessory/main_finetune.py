@@ -219,10 +219,6 @@ def main(args):
     print("Unwrapped Model = %s" % str(model))
     
     # resume stage1
-    directory = '/mnt/petrelfs/mengfanqing/SPHINX/LLaMA2-Accessory/accessory/exps/finetune/mm/output/finetune/mm/chart_multitask_instruction_tuning_gpu16_mixed_othertypebasetype/'
-    subdirectories = [name for name in os.listdir(directory) if os.path.isdir(os.path.join(directory, name))]
-    if len(subdirectories) != 0:
-        args.resume = os.path.join(directory,subdirectories[-1])
     if args.resume:
         misc.resume_stage1(args, model_without_FSDP=model)
 

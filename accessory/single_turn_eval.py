@@ -145,8 +145,8 @@ def main() -> None:
     # it's important to make sure that ranks within the same 
     # model parallel group should always receive the same input simultaneously
     # img_path = "/mnt/petrelfs/mengfanqing/donut/donut/pie.png"
-    folder_path = '/mnt/petrelfs/mengfanqing/SPHINX/ood/'
-    json_path = '/mnt/petrelfs/mengfanqing/SPHINX/ood/ood_openqa/qa.json'
+    folder_path = './ood/'
+    json_path = './qa.json'
     with open(json_path,'r') as f:
         data = json.load(f)
     for data_tmp in data:
@@ -187,7 +187,7 @@ def main() -> None:
         print(img_path)
         print('--------------------')
         result.append(data_tmp)
-    with open('/mnt/petrelfs/mengfanqing/SPHINX/ood/pred_multitask_nocot_10000.json','w') as f:
+    with open('./pred.json','w') as f:
         json.dump(result,f)
     # print(response)
 
