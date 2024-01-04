@@ -20,7 +20,7 @@ Charts play a vital role in data visualization, understanding data patterns, and
 
 - [ ] Open source the model and model weight.
 
-- [ ] Open source the inference script.
+- [x] Open source the inference script.
 
 - [ ] Open source the training scripts and the dataset (ChartSFT).
 
