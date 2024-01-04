@@ -1,21 +1,16 @@
-import sys
-import os
-sys.path.append(os.path.abspath(__file__).rsplit('/', 2)[0])
-
 import argparse
 import datetime
 import json
 import warnings
 
 import numpy as np
+import os
 import time
 from pathlib import Path
 import functools
 from functools import partial
 
 import torch
-from torch.utils.data import Dataset
-import torch.distributed as dist
 import torch.backends.cudnn as cudnn
 from torch.utils.tensorboard import SummaryWriter
 from torch.distributed.fsdp import (
@@ -41,15 +36,17 @@ except ImportError:
     warnings.warn("cannot import FusedAdam from apex, use torch AdamW instead")
     from torch.optim import AdamW
 
-import accessory.util.misc as misc
-from accessory.util.misc import NativeScalerWithGradNormCount as NativeScaler
-from accessory.util.tensor_type import default_tensor_type, promote_trainable_params_to_fp32
-from accessory.model.meta import MetaModel
-from accessory.engine_finetune import train_one_epoch
-from accessory.data.alpaca import FinetuneDataset, FinetuneDistSampler
-from accessory.data.conversation.dataset import FinetuneDialogDataset
-from accessory.data.transform import get_transform
-from accessory.util.tensor_parallel import load_tensor_parallel_model_list
+import util.misc as misc
+from util.misc import NativeScalerWithGradNormCount as NativeScaler
+from util.tensor_type import default_tensor_type, promote_trainable_params_to_fp32
+from model.meta import MetaModel
+from engine_finetune import train_one_epoch
+from torch.utils.data import Dataset
+from data.alpaca import FinetuneDataset, FinetuneDistSampler
+from data.conversation.dataset import FinetuneDialogDataset
+from data.transform import get_transform
+
+from util.tensor_parallel import load_tensor_parallel_model
 
 
 def get_args_parser():
@@ -72,10 +69,10 @@ def get_args_parser():
                         help='path to tokenizer.model')
 
 
-    parser.add_argument('--pretrained_path', default=['/path/to/pretrained'], type=str, nargs="+",
+    parser.add_argument('--pretrained_path', default='/path/to/pretrained', type=str,
                         help='path to checkpoint from pretrain stage')
-    parser.add_argument('--pretrained_type', type=str, default=None, choices=['consolidated', 'meta_ori'],
-                        help='<Deprecated> pretrained checkpoint save format, will be automatically discerned now')
+    parser.add_argument('--pretrained_type', type=str, choices=['consolidated', 'meta_ori'],
+                        help='pretrained checkpoint save format')
 
     # Optimizer parameters
     parser.add_argument('--weight_decay', type=float, default=0.02,
@@ -100,11 +97,10 @@ def get_args_parser():
                         help='whether use dialog dataset')
     parser.add_argument('--data_config', default='/path/to/data/config/yaml', type=str,
                         help='data config path')
+    parser.add_argument('--input_size', default=224, type=int,
+                        help='input image size')
     parser.add_argument('--image_transform', default='random_resized_crop', type=str,
                         help='type of image transformation (see accessory/data/transform.py for options)')
-    parser.add_argument('--cache_ann_on_disk', action="store_true",
-                        help='cache the dataset annotations on disk to avoid duplication across ranks. '
-                             'can save CPU memory, especially with large datasets')
 
     parser.add_argument('--output_dir', default='./output_dir',
                         help='path where to save, empty for no saving')
@@ -112,22 +108,27 @@ def get_args_parser():
                         help='path where to tensorboard log')
     parser.add_argument('--save_interval', default=1, type=int,
                         help='number of epochs between model saving')
-    parser.add_argument('--save_iteration_interval', default=5000, type=int,
-                        help='number of iterations between within-epoch model saving')
     parser.add_argument('--only_save_trainable', default=False, action="store_true",
                         help='only save trainable model parameters')
+    parser.add_argument('--device', default='cuda',
+                        help='device to use for training / testing')
     parser.add_argument('--seed', default=0, type=int)
     parser.add_argument('--resume', default='',
                         help='resume from checkpoint')
 
-    parser.add_argument('--num_workers', default=2, type=int)
+    parser.add_argument('--num_workers', default=5, type=int)
     parser.add_argument('--pin_mem', action='store_true',
                         help='Pin CPU memory in DataLoader for more efficient (sometimes) transfer to GPU.')
     parser.add_argument('--no_pin_mem', action='store_false', dest='pin_mem')
     parser.set_defaults(pin_mem=True)
 
-    # distributed training setting
+    # distributed training parameters
+    parser.add_argument('--world_size', default=1, type=int,
+                        help='number of distributed processes')
+    parser.add_argument('--local_rank', default=-1, type=int)
     parser.add_argument('--dist_on_itp', action='store_true')
+    parser.add_argument('--dist_url', default='env://',
+                        help='url used to set up distributed training')
 
     parser.add_argument('--model_parallel_size', type=int, default=1)
     parser.add_argument('--data_parallel', type=str, choices=['sdp', 'fsdp'], default='sdp')
@@ -149,6 +150,8 @@ def main(args):
 
     print('job dir: {}'.format(os.path.dirname(os.path.realpath(__file__))))
     print("{}".format(args).replace(', ', ',\n'))
+
+    device = torch.device(args.device)
 
     # fix the seed for reproducibility
     seed = args.seed + misc.get_rank()
@@ -172,7 +175,7 @@ def main(args):
     print("Start initialization.")
 
     if args.quant:
-        from accessory.util.quant import quantize
+        from util.quant import quantize
         from transformers.utils.quantization_config import BitsAndBytesConfig
         assert args.only_save_trainable, "only_save_trainable must be True when quantization is in the loop."
         for i in range(misc.get_world_size()):
@@ -180,21 +183,14 @@ def main(args):
                 print(f"## Processing on RANK {i}.", force=True)
                 with default_tensor_type(dtype=mixed_precision_dtype, device="cpu"):
                     model = MetaModel(args.llama_type, args.llama_config,
-                                      args.tokenizer_path, with_visual=not args.no_visual,
-                                      max_seq_len=args.max_words)
+                                    args.tokenizer_path, with_visual=not args.no_visual,
+                                    max_seq_len=args.max_words)
                 promote_trainable_params_to_fp32(model)
                 misc.print_param_status(model)
 
-                # load pretrained weights
-                if fs_init.get_data_parallel_rank() == 0:
-                    print(f"## Load pretrained from {args.pretrained_path}", force=True)
-                    load_result = load_tensor_parallel_model_list(model, args.pretrained_path)
-                    print("load result: ", load_result)
-                    if args.pretrained_type is not None:
-                        warnings.warn(
-                            "The `--pretrained_type` argument has been deprecated and will be removed soon. "
-                            "The types of checkpoints are now automatically discerned by file names now"
-                        )
+                # load pre-trained weights
+                print(f"## Load pretrained from {args.pretrained_path}", force=True)
+                load_tensor_parallel_model(model, args.pretrained_path, args.pretrained_type)
 
                 print("## Quantizing model to 4bit!", force=True)
                 quantization_config = BitsAndBytesConfig.from_dict(
@@ -209,7 +205,7 @@ def main(args):
                 
                 # will (1) release CPU memory usage, and (2) occupy GPU memory.
                 model.cuda() 
-            dist.barrier()
+            torch.distributed.barrier()
     else:
         with default_tensor_type(dtype=mixed_precision_dtype, device="cuda"):
             model = MetaModel(args.llama_type, args.llama_config,
@@ -218,23 +214,21 @@ def main(args):
         print("Finish initialization.")
         promote_trainable_params_to_fp32(model)
         misc.print_param_status(model)
-        if fs_init.get_data_parallel_rank() == 0:
-            print(f"load pretrained from {args.pretrained_path}")
-            load_result = load_tensor_parallel_model_list(model, args.pretrained_path)
-            print("load result: ", load_result)
-            if args.pretrained_type is not None:
-                warnings.warn(
-                    "The `--pretrained_type` argument has been deprecated and will be removed soon. "
-                    "The types of checkpoints are now automatically discerned by file names now"
-                )
+        print(f"load pretrained from {args.pretrained_path}")
+        load_tensor_parallel_model(model, args.pretrained_path, args.pretrained_type)
     print("Unwrapped Model = %s" % str(model))
-
+    
     # resume stage1
+    directory = '/mnt/petrelfs/mengfanqing/SPHINX/LLaMA2-Accessory/accessory/exps/finetune/mm/output/finetune/mm/chart_multitask_instruction_tuning_gpu16_mixed_othertypebasetype/'
+    subdirectories = [name for name in os.listdir(directory) if os.path.isdir(os.path.join(directory, name))]
+    if len(subdirectories) != 0:
+        args.resume = os.path.join(directory,subdirectories[-1])
     if args.resume:
         misc.resume_stage1(args, model_without_FSDP=model)
 
     TransformerBlock = type(model.llma.layers[0])
-    fsdp_ignored_parameters = [param for param in model.parameters() if not param.requires_grad]
+    # ignored_named_parameters = {name: param for name, param in model.named_parameters() if not param.requires_grad}
+    # print(ignored_named_parameters.keys())
     model = FSDP(
         model,
         process_group=fs_init.get_data_parallel_group(),
@@ -255,14 +249,11 @@ def main(args):
             "ddp": ShardingStrategy.NO_SHARD,
             "fsdp": ShardingStrategy.FULL_SHARD,
         }[args.data_parallel],
-        device_id=torch.cuda.current_device(),
-        ignored_parameters=fsdp_ignored_parameters
+        device_id=device,
+        ignored_parameters=[param for param in model.parameters() if not param.requires_grad]
     )
-    # broadcast ignored params, which are not synchronized among data parallel ranks by the FSDP call
-    for param in fsdp_ignored_parameters:
-        dist.broadcast(param.data, src=dist.get_global_rank(fs_init.get_data_parallel_group(), 0),
-                       group=fs_init.get_data_parallel_group())
-    # broadcast non-model-parallel parameters within model parallel group
+
+    # broadcast nonmp parameters within model parallel group
     misc.broadcast_nonmp_parameters(model)
 
     # gradient checkpointing
@@ -270,7 +261,7 @@ def main(args):
         print("apply gradient checkpointing")
         non_reentrant_wrapper = partial(
             checkpoint_wrapper,
-            offload_to_cpu=False,
+            #offload_to_cpu=False,
             checkpoint_impl=CheckpointImpl.NO_REENTRANT,
         )
         check_fn = lambda submodule: isinstance(submodule, TransformerBlock)
@@ -292,10 +283,11 @@ def main(args):
         DatasetClass = FinetuneDialogDataset
     else:
         DatasetClass = FinetuneDataset
-    dataset_train = DatasetClass(
-        args.data_config, transform=get_transform(args.image_transform, getattr(model.llma, 'image_size', 224)),
-        max_words=args.max_words, image_words=model.get_image_words(), tokenizer=model.tokenizer,
-        cache_on_disk=args.cache_ann_on_disk, rank=global_rank)
+    dataset_train = DatasetClass(args.data_config,
+                                 #transform=get_transform(args.image_transform, getattr(model.llma, 'image_size', 224)),
+                                 transform=get_transform(args.image_transform, args.input_size),
+                                 max_words=args.max_words, image_words=model.get_image_words(),
+                                 tokenizer_path=args.tokenizer_path)
     print(dataset_train)
 
     if global_rank == 0 and args.log_dir is not None:

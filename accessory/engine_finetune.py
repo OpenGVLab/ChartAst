@@ -1,11 +1,14 @@
 import math
 import sys
+import os
+from typing import Iterable
 import contextlib
 
 import torch
 
-import accessory.util.misc as misc
-import accessory.util.lr_sched as lr_sched
+import util.misc as misc
+import util.lr_sched as lr_sched
+from fairscale.nn.model_parallel import initialize as fs_init
 
 def train_one_epoch(model: torch.nn.Module,
                     data_loader, optimizer: torch.optim.Optimizer,
@@ -40,10 +43,8 @@ def train_one_epoch(model: torch.nn.Module,
             "tf32": contextlib.nullcontext(),
         }[args.precision]
         with autocast_ctx:
-             c_loss, additional_loss_dict = model(examples, labels, images=imgs)
+             c_loss = model(examples, labels, images=imgs)
         loss = c_loss
-        for (add_loss, weight) in additional_loss_dict.values():
-            loss = loss + add_loss * weight
         loss_value = loss.item()
         c_loss_value = c_loss.item()
         if not math.isfinite(loss_value):
@@ -72,7 +73,6 @@ def train_one_epoch(model: torch.nn.Module,
         torch.cuda.synchronize()
 
         metric_logger.update(closs=c_loss_value)
-        metric_logger.update(**{key: val[0].item() for key, val in additional_loss_dict.items()})
 
         lr = optimizer.param_groups[0]["lr"]
         metric_logger.update(lr=lr)
@@ -93,7 +93,7 @@ def train_one_epoch(model: torch.nn.Module,
 
 
         # save within epoch
-        n_update_per_save = args.save_iteration_interval // accum_iter
+        n_update_per_save = 10000 // accum_iter
         if update_grad and ((data_iter_step + 1) // accum_iter) % n_update_per_save == 0:
             misc.save_checkpoint(
                 output_dir=args.output_dir,
