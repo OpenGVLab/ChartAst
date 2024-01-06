@@ -13,6 +13,16 @@ Charts play a vital role in data visualization, understanding data patterns, and
 <img src="./demo.png" alt="image-20240104143625786" style="zoom:67%;" />
 
 
+## Inference
+```
+sh accessory/exps/finetune/mm/test.sh
+```
+
+## Training
+```
+sh accessory/exps/finetune/mm/chart.sh
+```
+
 
 ## To Do List
 
