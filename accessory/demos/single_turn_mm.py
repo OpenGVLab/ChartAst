@@ -1,78 +1,82 @@
 import sys
 import os
-sys.path.append(os.path.abspath(__file__).rsplit('/', 3)[0])
+sys.path.append(os.path.abspath(__file__).rsplit('/', 2)[0])
 
-from accessory.model.meta import MetaModel
+from model.meta import MetaModel
 
 import argparse
 import torch
 import torch.distributed as dist
 import gradio as gr
-import numpy as np
-import random
+
 from PIL import Image
 
-from accessory.util import misc
+from util import misc
 from fairscale.nn.model_parallel import initialize as fs_init
 
-from accessory.data.alpaca import format_prompt
-from accessory.data.transform import get_transform
-from accessory.util.tensor_parallel import load_tensor_parallel_model_list
-from accessory.util.tensor_type import default_tensor_type
+from data.alpaca import format_prompt
+from data.transform import get_transform
+from util.tensor_parallel import load_tensor_parallel_model_list
+from util.tensor_type import default_tensor_type
 
 
 def get_args_parser():
     parser = argparse.ArgumentParser('Single-turn (conversation) demo', add_help=False)
     # Model parameters
-    parser.add_argument('--pretrained_path', default='/path/to/pretrained', type=str, nargs="+",
-                        help='directory containing pretrained checkpoints')
-    parser.add_argument('--llama_type', default=None, type=str, metavar='MODEL',
+    parser.add_argument('--llama_type', default='llama_ens5', type=str, metavar='MODEL',
                         help='type of llama')
-    parser.add_argument('--llama_config', default=None, type=str, nargs="*",
+    parser.add_argument('--llama_config', default='/mnt/petrelfs/share_data/llm_llama2/llama2_raw/llama-2-13b/params.json', type=str, nargs="*",
                         help='Path to llama model config')
-    parser.add_argument('--tokenizer_path', type=str, default=None,
+    parser.add_argument('--tokenizer_path', type=str, default="/mnt/petrelfs/mengfanqing/SPHINX/LLaMA2-Accessory/tokenizer.model",
                         help='path to tokenizer.model')
 
-    parser.add_argument('--image_transform', default='resized_center_crop', type=str,
+    parser.add_argument('--pretrained_path', default='/mnt/petrelfs/share_data/gaopeng/shared_env/load_pdf_pretrained/pdf_only_epoch0-iter9999', type=str, nargs="+",
+                        help='directory containing pre-trained checkpoints')
+
+    parser.add_argument('--image_transform', default='padded_resize', type=str,
                         help='type of image transformation (see accessory/data/transform.py for options)')
-    parser.add_argument('--max_seq_len', type=int, default=4096)
 
     parser.add_argument('--device', default='cuda',
                         help='device for inference')
+    parser.add_argument('--model_parallel_size', default=1, type=int)
+
+    parser.add_argument('--world_size', default=1, type=int,
+                        help='number of distributed processes')
+    parser.add_argument('--local_rank', default=-1, type=int)
+    parser.add_argument('--dist_on_itp', action='store_true')
+    parser.add_argument('--dist_url', default='env://',
+                        help='url used to set up distributed training')
     parser.add_argument("--dtype", type=str, choices=["fp16", "bf16"], default="bf16",
                         help="The dtype used for model weights and inference.")
     parser.add_argument('--quant', action='store_true', help="enable quantization")
-
-    parser.add_argument('--dist_on_itp', action='store_true')
     return parser
 
 args = get_args_parser().parse_args()
 
 # define the model
-random.seed(0)
-torch.random.manual_seed(0)
-np.random.seed(0)
 misc.init_distributed_mode(args)
-fs_init.initialize_model_parallel(dist.get_world_size())
+fs_init.initialize_model_parallel(args.model_parallel_size)
 target_dtype = {
     "bf16": torch.bfloat16,
     "fp16": torch.float16,
 }[args.dtype]
-model = MetaModel.from_pretrained(args.pretrained_path, args.llama_type, args.llama_config, args.tokenizer_path,
-                                  with_visual=True, max_seq_len=args.max_seq_len,
-                                  mp_group=fs_init.get_model_parallel_group(),
-                                  dtype=target_dtype, device="cpu" if args.quant else "cuda",)
+with default_tensor_type(dtype=target_dtype, device="cpu" if args.quant else "cuda"):
+    model = MetaModel(args.llama_type, args.llama_config, args.tokenizer_path, with_visual=True)
+
+print(f"load pretrained from {args.pretrained_path}")
+load_result = load_tensor_parallel_model_list(model, args.pretrained_path)
+print("load result: ", load_result)
+
 
 if args.quant:
     print("Quantizing model to 4bit!")
-    from accessory.util.quant import quantize
+    from util.quant import quantize
     from transformers.utils.quantization_config import BitsAndBytesConfig
     quantization_config = BitsAndBytesConfig.from_dict(
         config_dict={
             "load_in_8bit": False,
             "load_in_4bit": True,
             "bnb_4bit_quant_type": "nf4",
-            "bnb_4bit_compute_dtype": torch.bfloat16
         },
         return_unused_kwargs=False,
     )
@@ -84,33 +88,33 @@ model.bfloat16().cuda()
 
 @ torch.inference_mode()
 def generate(
-        image,
+        img_path,
         prompt,
         question_input,
         system_prompt,
         max_gen_len,
         gen_t, top_p
 ):
-    if image is not None:
-        image = image.convert('RGB')
-        image = get_transform(args.image_transform)(image).unsqueeze(0)
+    if img_path is not None:
+        image = Image.open(img_path).convert('RGB')
+        image = get_transform(args.image_transform,size=448)(image).unsqueeze(0)
     else:
         image = None
 
     # text output
-    _prompt = format_prompt({"instruction":prompt, "input":question_input}, system_prompt)
-
+    # _prompt = format_prompt({"instruction":prompt, "input":question_input}, system_prompt)
+    _prompt = prompt
+    print(_prompt)
+    print('_prompt-------------------------')
     dist.barrier()
     dist.broadcast_object_list([_prompt, image, max_gen_len, gen_t, top_p])
 
     if image is not None:
         image = image.cuda()
-    if args.quant:
+    with torch.cuda.amp.autocast(dtype=target_dtype):
         results = model.generate([_prompt], image, max_gen_len=max_gen_len, temperature=gen_t, top_p=top_p)
-    else:
-        with torch.cuda.amp.autocast(dtype=target_dtype):
-            results = model.generate([_prompt], image, max_gen_len=max_gen_len, temperature=gen_t, top_p=top_p)
-    text_output = results[0].strip()
+    # text_output = results[0].strip()
+    text_output = results[0].split('###')[0]
     return text_output
 
 def create_demo():
@@ -119,7 +123,7 @@ def create_demo():
             with gr.Column():
                 with gr.Row():
                     with gr.Column() as image_input:
-                        img = gr.Image(label='Image Input', type='pil')
+                        img_path = gr.Image(label='Image Input', type='filepath')
             with gr.Column():
                 with gr.Row():
                     prompt = gr.Textbox(lines=4, label="Question")
@@ -142,7 +146,7 @@ def create_demo():
                     text_output = gr.Textbox(lines=11, label='Text Out')
 
     inputs = [
-        img,
+        img_path,
         prompt, question_input, system_prompt,
         max_gen_len, gen_t, top_p,
     ]
@@ -173,7 +177,7 @@ if dist.get_rank() == 0:
     with gr.Blocks(theme=gr.themes.Default(), css="#pointpath {height: 10em} .label {height: 3em}") as DEMO:
         gr.Markdown(description)
         create_demo()
-    DEMO.queue(api_open=True, concurrency_count=1).launch(share=True)
+    DEMO.queue(api_open=True).launch(share=True,server_name='0.0.0.0')
 
 else:
     worker_func()
