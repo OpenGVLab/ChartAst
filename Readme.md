@@ -28,6 +28,11 @@ sh accessory/exps/finetune/mm/test.sh
 sh accessory/exps/finetune/mm/chart.sh
 # run accessory/main_finetune.py
 ```
+## Gradio demo
+```
+sh accessory/demo/start.sh
+```
+
 
 ## Concat
 if you have any questions about this work, you can email Fanqing Meng using mengfanqing33@gmail.com
