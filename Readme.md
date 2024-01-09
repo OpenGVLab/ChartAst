@@ -29,6 +29,8 @@ sh accessory/exps/finetune/mm/chart.sh
 # run accessory/main_finetune.py
 ```
 
+## Concat
+if you have any questions about this work, you can email Fanqing Meng using mengfanqing33@gmail.com
 
 ## To Do List
 
