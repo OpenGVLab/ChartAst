@@ -40,7 +40,7 @@ if you have any questions about this work, you can email Fanqing Meng using meng
 
 - [x] Open source the inference script.
 
-- [ ] Open source the training scripts and the dataset (ChartSFT).
+- [ ] Open source the dataset (ChartSFT).
 
   
 
