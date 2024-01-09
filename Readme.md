@@ -20,12 +20,13 @@ It is same as [LLaMA2-Accessory](https://github.com/Alpha-VLLM/LLaMA2-Accessory/
 replace pretrained_path as the pretrained model path
 ```
 sh accessory/exps/finetune/mm/test.sh
-# run
+# run accessory/single_turn_eval.py
 ```
 
 ## Training
 ```
 sh accessory/exps/finetune/mm/chart.sh
+# run accessory/main_finetune.py
 ```
 
 
