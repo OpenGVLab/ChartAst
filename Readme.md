@@ -13,7 +13,7 @@ Charts play a vital role in data visualization, understanding data patterns, and
 
 
 
-<img src="./demo.png" alt="image-20240104143625786" style="zoom:67%;" />
+![image-20240104143625786](./demo.png)
 
 ## Environment
 It is same as [LLaMA2-Accessory](https://github.com/Alpha-VLLM/LLaMA2-Accessory/tree/main)**
