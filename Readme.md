@@ -33,6 +33,9 @@ sh accessory/exps/finetune/mm/chart.sh
 sh accessory/demo/start.sh
 ```
 
+## Note
+- We update the paper, primarily making updates to the model, correcting some errors in the article, and providing more detailed explanations.
+
 
 ## Concat
 if you have any questions about this work, you can email Fanqing Meng using mengfanqing33@gmail.com
