@@ -34,7 +34,7 @@ sh accessory/demo/start.sh
 ```
 
 ## Note
-- We update the paper, primarily making updates to the model, correcting some errors in the article, and providing more detailed explanations.
+- We update the paper(ChartAst.pnf), primarily making updates to the model, correcting some errors in the article, and providing more detailed explanations.
 
 
 ## Concat
