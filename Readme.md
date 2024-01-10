@@ -5,7 +5,7 @@ This is the PyTorch implementation of the paper **ChartAssisstant: A Universal C
 **This repo is built upon [LLaMA2-Accessory](https://github.com/Alpha-VLLM/LLaMA2-Accessory/tree/main)**
 
 ## Note
-- We update the paper(ChartAst.pdf), primarily making updates to the model, correcting some errors in the article, and providing more detailed explanations.
+- We update the paper(ChartAssistant.pdf), primarily making updates to the model, correcting some errors in the article, and providing more detailed explanations.
 
 ## ChartAssisstant
 
