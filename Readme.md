@@ -51,7 +51,7 @@ if you have any questions about this work, you can email Fanqing Meng using meng
 
 - [x] Create the git repository.
 
-- [ ] Open source the model and model weight.
+- [x] Open source the model and model weight.
 
 - [x] Open source the inference script.
 
