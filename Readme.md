@@ -7,6 +7,8 @@ This is the PyTorch implementation of the paper **ChartAssisstant: A Universal C
 ## Note
 - 1.11: The ChartAssistant, which has undergone two-stage training on ChartSFT, has been open-sourced. You can download it through the following link.
   - https://pan.baidu.com/s/1t0QPLDfULNovnYKtsQxjOQ  password: 10el
+  - [HuggingFace](https://huggingface.co/FanqingM/ChartAssistant) : put consolidated.00-of-02.model.pth and consolidated.01-of-02.model.pth in one directory, and replace pretrained_path in the scipt as it. 
+
 
 - 1.10: We update the paper(ChartAssistant.pdf), primarily making updates to the model, correcting some errors in the article, and providing more detailed explanations. 
 
