@@ -2,7 +2,7 @@
 
 This is the PyTorch implementation of the paper **ChartAssisstant: A Universal Chart Multimodal Language Model via Chart-to-Table Pre-training and Multitask Instruction Tuning**, the paper is available at https://arxiv.org/abs/2401.02384v2
 
-We have developed ChartAssistant, which aligns and tunes instructions using large-scale chart data. The model possesses powerful mathematical computation capabilities and achieves state-of-the-art performance on multiple datasets without the need for downstream dataset finetuning.
+We have developed ChartAssistant, which uses large-scale chart data to align and instruction turning. The model possesses powerful mathematical computation capabilities and achieves state-of-the-art performance on multiple datasets without the need for downstream dataset finetuning.
 
 **This repo is built upon [LLaMA2-Accessory](https://github.com/Alpha-VLLM/LLaMA2-Accessory/tree/main)**
 
