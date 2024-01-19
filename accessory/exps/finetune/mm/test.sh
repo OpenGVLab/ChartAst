@@ -1,36 +1,24 @@
-#!/bin/bash
-#proxy_on
-
-pretrained_path=./epoch0
-pretrained_type=consolidated
-llama_config="./params.json"
-tokenizer_path="./tokenizer.model"
-data_config=./chart_multitask_mixed_othertypebasetype.yaml
-
-data_parallel=sdp
-model_parallel=2
-GPU=16
-time=$(date "+%Y%m%d-%H%M%S")
-# port=$((((RANDOM<<15)|RANDOM) % 49152 + 1000 )) 
-echo $time
-exp_name=finetune/mm/chart_multitask_instruction_tuning_gpu16_mixed_othertypebasetype
+MODEL=llama_ens5
+llama_config="params.json"
+tokenizer_path="tokenizer.model"
+# MASTER_PORT=$((RANDOM % 101 + 20000))
+#export OMP_NUM_THREADS=8
+#export NCCL_LL_THRESHOLD=0
+#export NCCL_P2P_DISABLE=1
+#export NCCL_IB_DISABLE=1
+pretrained_path=pretrained_path
+exp_name=ChartOCR_448_f16_t0.9_p0.5
 echo "exp name: $exp_name"
-mkdir -p /SPHINX/LLaMA2-Accessory/shpinx_log/output/"$exp_name"
-
-#srun -p Gveval-P1 --gres=gpu:8 --job-name=Chart_load_pretrain --cpus-per-task 12 -n8 --ntasks-per-node=8  --quotatype=spot torchrun --nproc_per_node 8 main_finetune.py \
-
-srun -p Gveval-P1 --gres=gpu:8 --job-name=Chart_load_pretrain --cpus-per-task 12 -n$GPU --ntasks-per-node=8  --quotatype=reserved python -u single_turn_eval.py \
---output_dir output/"$exp_name" --epochs 1 --warmup_epochs 0.03 \
---batch_size 4 --accum_iter 8 --num_workers 4 \
---max_words 2048 \
+mkdir -p output/"$exp_name"
+srun -p Gveval-P1 --gres=gpu:1 --job-name=sam_bf_Chart_debug --cpus-per-task 12 -n1 --ntasks-per-node=1  --quotatype=auto python -u accessory/single_turn_eval_multitask.py \
+--llama_type ${MODEL} \
+--world_size 1 \
+--llama_config ${llama_config} \
+--tokenizer_path ${tokenizer_path} \
+--pretrained_path ${pretrained_path} \
+--batch_size 10 \
 --input_size 448 \
---lr 0.00002 --min_lr 0 --clip_grad 8 --weight_decay 0 \
---data_parallel "$data_parallel" --model_parallel_size "$model_parallel" --checkpointing \
---llama_type llama_ens5 --llama_config $llama_config --tokenizer_path "$tokenizer_path" \
---pretrained_path "$pretrained_path" --pretrained_type="$pretrained_type" \
---data_config $data_config --dialog \
---image_transform padded_resize \
-2>&1 | tee -a /SPHINX/LLaMA2-Accessory/shpinx_log/output/"$exp_name"/output_$time.log 2>&1 & \
-#2>&1 | tee -a /mnt/petrelfs/share_data/shaowenqi/shpinx_log/output/"$exp_name"/output.log &
+--model_parallel_size 1 \
+2>&1 | tee -a test.log 2>&1 & \
 
 echo "exp name: $exp_name"
