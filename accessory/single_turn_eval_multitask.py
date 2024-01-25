@@ -597,7 +597,14 @@ if __name__ == '__main__':
                 args.dataset = 'chart-to-text'
                 prompt = """Below is an instruction that describes a task. "
                             "Write a response that appropriately completes the request.\n\n"
-                            "### Instruction:\nPlease summary the chart.\n\n### Response:"""
+                            "### Instruction:\nPlease summarize the chart.\n\n### Response:"""
+                 prompt = """Below is an instruction that describes a task. "
+                            "Write a response that appropriately completes the request.\n\n"
+                            "### Instruction:\nPlease summarize the chart and answer me as long as you can.\n\n### Response:"""
+                prompt = """Below is an instruction that describes a task. "
+                            "Write a response that appropriately completes the request.\n\n"
+                            "### Instruction:\nPlease answer my question based on the chart:  What conclusions you have from this chart? Please answer me as long as you can.\n\n### Response:"""
+                ## you can use three prompts to summarize
                 dataset = ChartSummDataset(test=ds_collections[args.dataset],
                                         input_size=args.input_size,
                                         prompt=args.dataset)
