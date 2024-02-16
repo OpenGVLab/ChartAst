@@ -7,7 +7,7 @@ We have developed ChartAssistant, which uses large-scale chart data to align and
 **This repo is built upon [LLaMA2-Accessory](https://github.com/Alpha-VLLM/LLaMA2-Accessory/tree/main)**
 
 ## Note
-- 2.15 We update the paper(https://arxiv.org/abs/2401.02384),with better performance and more experiments and corrected experimental results.
+- 2.15 We update the [paper](https://arxiv.org/abs/2401.02384),with better performance and more experiments and corrected experimental results.
   
 - 1.11: The ChartAssistant, which has undergone two-stage training on ChartSFT, has been open-sourced. You can download it through the following link.
   - https://pan.baidu.com/s/1t0QPLDfULNovnYKtsQxjOQ  password: 10el
