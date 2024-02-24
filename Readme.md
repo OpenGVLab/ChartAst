@@ -8,7 +8,7 @@ We have developed ChartAssistant, which uses large-scale chart data to align and
 
 ## Note
 
-- 2.24: We release an online demo: http://106.14.127.192:7861/ 🔥🔥🔥
+- 2.24: We release an online demo: http://106.14.127.192:7861/ 
 
 - 2.15 We update the [paper](https://arxiv.org/abs/2401.02384),with better performance and more experiments and corrected experimental results.
   
