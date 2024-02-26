@@ -8,7 +8,7 @@ import argparse
 import torch
 import torch.distributed as dist
 import gradio as gr
-from examples.examples import read_examples
+from examples import read_examples
 from PIL import Image
 
 from util import misc
