@@ -118,7 +118,7 @@ if you have any questions about this work, you can email Fanqing Meng using meng
 
 - [x] Open source the inference script.
 
-- [ ] Open source the dataset (ChartSFT).
+- [x] Open source the dataset (ChartSFT).
 
   
 
