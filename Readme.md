@@ -23,8 +23,7 @@ We have developed ChartAssistant, which uses large-scale chart data to align and
             "from": "gpt",
             "value": "{'step1': {'func1': 'select', 'arg1': 'malaria', 'output1': ['10.000', '0.900']}, 'step2': {'func2': 'numpy.sort', 'arg2': 'output1', 'output2': 'sorted_arr'}, 'step3': {'func3': 'getitem', 'arg3':['sorted_arr', '-1'], 'output3': 'maximum'}, 'step4': {'func4': 'numpy.delete', 'arg4': ['sorted_arr', '-1'], 'output4': 'new_arr'}, 'step5': {'func5': 'getitem', 'arg5': ['new_arr', '-1'], 'output5': 'second_maximum'}, 'step6': {'func6': 'numpy.subtract', 'arg6': ['maximum', 'second_maximum'], 'output6': 'diff'}}"
         }
-    ]
-},
+    ]},
     ```
   - ReferQA:
   
