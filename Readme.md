@@ -27,40 +27,47 @@ tep6': {'func6': 'numpy.subtract', 'arg6': ['maximum', 'second_maximum'], 'outpu
             }
         ]
     },
-  ```
+    ```
   - ReferQA:
+  
     ```
     {
-          "image": "/mnt/petrelfs/share_data/luquanfeng/referring_box/train/img/52342_1_arrow.png",
+            "image": "/mnt/petrelfs/share_data/luquanfeng/referring_box/train/img/52342_1_arrow.png",
+            "conversations": [
+                {
+                    "from": "human",
+                    "value": "Please use commandline to solve the math question about the referring box: What is the median years of the legend represented by the blue arrow per amount(current us$)?"
+                },
+                {
+                    "from": "gpt",
+                    "value": "{'step1': {'func1': 'select', 'arg1': 'ecuador', 'output1': ['139370000.000', '160050000.000', '165410000.000', '174120000.000', '214220000.000']}, 'step2': {'func2': 'numpy.median', 'arg2': 'outpu
+    t1', 'output2': 'median'}}"
+                }
+            ]
+        },
+    ```
+  
+  - Arxiv QA:
+  
+    ```
+    {
+          "image": "/mnt/petrelfs/share_data/mengfanqing1/mengfanqing/arxiv/Img_QA/vbar/1806.09244_table_0.png",
           "conversations": [
               {
                   "from": "human",
-                  "value": "Please use commandline to solve the math question about the referring box: What is the median years of the legend represented by the blue arrow per amount(current us$)?"
+                  "value": "Please answer my question based on the chart: How many counties are included in each dataset?"
               },
               {
                   "from": "gpt",
-                  "value": "{'step1': {'func1': 'select', 'arg1': 'ecuador', 'output1': ['139370000.000', '160050000.000', '165410000.000', '174120000.000', '214220000.000']}, 'step2': {'func2': 'numpy.median', 'arg2': 'outpu
-  t1', 'output2': 'median'}}"
+                  "value": "The number of counties included in each dataset are as follows: \n- Brazil-Soybean: 1529 counties \n- US-Soybean: 1814 counties \n- US-Maize: 2204 counties."
               }
           ]
       },
     ```
-  - Arxiv QA:
-    ```
-    {
-        "image": "/mnt/petrelfs/share_data/mengfanqing1/mengfanqing/arxiv/Img_QA/vbar/1806.09244_table_0.png",
-        "conversations": [
-            {
-                "from": "human",
-                "value": "Please answer my question based on the chart: How many counties are included in each dataset?"
-            },
-            {
-                "from": "gpt",
-                "value": "The number of counties included in each dataset are as follows: \n- Brazil-Soybean: 1529 counties \n- US-Soybean: 1814 counties \n- US-Maize: 2204 counties."
-            }
-        ]
-    },
-    ```
+  
+    
+  
+    
 
 - 2.15 We update the [paper](https://arxiv.org/abs/2401.02384),with better performance and more experiments and corrected experimental results.
   
