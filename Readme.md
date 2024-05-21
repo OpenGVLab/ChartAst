@@ -8,6 +8,8 @@ We have developed ChartAssistant, which uses large-scale chart data to align and
 
 ## Note
 
+- An online demo is avaliable at http://106.14.127.192:7861/ 🔥🔥🔥
+
 - 5.20 We have released the ChartSFT in https://huggingface.co/datasets/FanqingM/ChartAssistant 🔥🔥🔥
   Here is some example:
   - MathQA:
