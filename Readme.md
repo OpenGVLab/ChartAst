@@ -6,6 +6,9 @@ We have developed ChartAssistant, which uses large-scale chart data to align and
 
 **This repo is built upon [LLaMA2-Accessory](https://github.com/Alpha-VLLM/LLaMA2-Accessory/tree/main)**
 
+## ChartSFT
+We have released the ChartSFT in https://huggingface.co/datasets/FanqingM/ChartAssistant 🔥🔥🔥
+
 ## Note
 
 - An online demo is avaliable at http://106.14.127.192:7861/ 🔥🔥🔥
