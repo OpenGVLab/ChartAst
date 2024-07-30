@@ -113,7 +113,7 @@ sh accessory/demo/start.sh
 
 
 ## Concat
-if you have any questions about this work, you can email Fanqing Meng using mengfanqing33@gmail.com
+if you have any questions about this work, you can email Fanqing Meng using mengfanqing33@gmail.com or just by wechat: mfq2052063742
 
 ## To Do List
 
