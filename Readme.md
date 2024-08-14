@@ -98,6 +98,7 @@ It is same as [LLaMA2-Accessory](https://github.com/Alpha-VLLM/LLaMA2-Accessory/
 replace pretrained_path as the pretrained model path
 ```
 sh accessory/exps/finetune/mm/test.sh
+# Please use the params in the test.sh
 # run accessory/single_turn_eval.py
 ```
 
