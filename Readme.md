@@ -13,7 +13,6 @@ We have released the ChartSFT in https://huggingface.co/datasets/FanqingM/ChartA
 
 - **Some people may have mistakenly tested our chartqa dataset. We have made the chartqa test results public as chartqa_all.json.**
 
-- An online demo is avaliable at http://106.14.127.192:7861/ 🔥🔥🔥
 
 - 5.20 We have released the ChartSFT in https://huggingface.co/datasets/FanqingM/ChartAssistant 🔥🔥🔥
   Here is some example:
